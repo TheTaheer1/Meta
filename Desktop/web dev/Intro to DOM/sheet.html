@@ -1,0 +1,310 @@
+<!-- <button id="count-btn">Click Me</button>
+<p id="count">0</p>
+
+<script>
+  // JS goes here
+  const btn=document.querySelector('#count-btn')
+  const id1=document.querySelector('#count')
+  let count=0;
+  btn.addEventListener('click',function(){
+    count++
+    id1.textContent=count
+  })
+</script> -->
+
+
+<!-- <input id="text-input" type="text" />
+<p id="preview"></p>
+
+<script>
+  // JS goes here
+  const inp=document.querySelector('#text-input')
+  const pre=document.querySelector('#preview')
+  inp.addEventListener('input',function(){
+    pre.textContent=inp.value
+  })
+</script> -->
+
+<!-- <button id="toggle-btn">Toggle Box</button>
+<div id="box" style="width:100px;height:100px;background:red;"></div>
+
+<script>
+  // JS goes here
+  const btn=document.querySelector('#toggle-btn')
+  const id1=document.querySelector('#box')
+  btn.addEventListener('click',function(){
+    if(box.style.display==='none'){
+        box.style.display=''
+    }
+    else{
+        box.style.display='none'
+    }
+  })
+</script> -->
+
+<!-- <button id="color-btn">Change Color</button>
+<div id="color-box" style="width:100px;height:100px;"></div>
+
+<script>
+  // JS goes here
+  const btn=document.querySelector('#color-btn')
+  const id1=document.querySelector('#color-box')
+  function random(){
+    return Math.floor(Math.random() * 256)
+  }
+  btn.addEventListener('click',function(){
+    const r=random(),g=random(),b=random()
+    id1.style.backgroundColor=`rgb(${r},${g},${b})`
+  })
+</script> -->
+
+<!-- <input id="name-input" />
+<button id="add-name-btn">Add Name</button>
+<ul id="name-list"></ul>
+
+<script>
+  // JS goes here
+  const id1=document.querySelector('#name-input')
+  const btn=document.querySelector('#add-name-btn')
+  const ul=document.querySelector('#name-list')
+  btn.addEventListener('click',function(){
+    const text=id1.value.trim()
+    if(text === '')
+    return
+const li=document.createElement('li')
+li.textContent=text
+ul.appendChild(li)
+id1.value=''
+
+  })
+</script> -->
+
+<!-- <button id="disable-btn">Click Once</button>
+
+<script>
+  const button = document.getElementById('disable-btn');
+
+  button.addEventListener('click', function handler() {
+    button.disabled = true;
+    button.textContent = 'Disabled';
+    // optional: remove this listener
+    button.removeEventListener('click', handler);
+  });
+</script> -->
+
+<!-- <button id="show-img-btn">Show Image</button>
+<img id="my-img" src="https://via.placeholder.com/150" style="display:none"/>
+
+<script>
+  const btn = document.getElementById('show-img-btn');
+  const img = document.getElementById('my-img');
+
+  btn.addEventListener('click', () => {
+    img.style.display = '';
+  });
+</script> -->
+
+<!-- <style>
+  .done { text-decoration: line-through; opacity: 0.7; }
+</style>
+
+<ul id="todo">
+  <li>Task 1</li>
+  <li>Task 2</li>
+  <li>Task 3</li>
+</ul>
+
+<script>
+  // JS goes here
+  const li=document.querySelectorAll('#todo li')
+  li.forEach(function(e){
+    e.addEventListener('click',function(){
+        e.classList.toggle('done')
+    })
+  })
+</script> -->
+
+<!-- <button id="count-items-btn">Count Items</button>
+<ul id="items">
+  <li>A</li>
+  <li>B</li>
+</ul>
+<p id="output"></p>
+
+<script>
+  // JS goes here
+  const btn=document.querySelector('#count-items-btn')
+  const out=document.querySelector('#output')
+  btn.addEventListener('click',function(){
+    const item=document.querySelectorAll('#items li')
+    out.textContent=` Items : ${item.length}`
+  })
+
+</script> -->
+
+<!-- <h2 id="title">Hello</h2>
+<button id="change-title-btn">Change</button>
+
+<script>
+  const btn = document.getElementById('change-title-btn');
+  const title = document.getElementById('title');
+
+  btn.addEventListener('click', () => {
+    title.textContent = 'Welcome to the DOM practice!';
+  });
+</script> -->
+
+<!-- <style>
+  .box { width:60px;height:60px;background:#ddd;display:inline-block;margin:4px;cursor:pointer; }
+  .active { border: 3px solid #333; }
+</style>
+
+<div id="container">
+  <div class="box"></div>
+  <div class="box"></div>
+  <div class="box"></div>
+</div>
+
+<script>
+  // JS goes here
+  const box=document.querySelectorAll('.box')
+  box.forEach(function(el){
+    el.addEventListener('click',function(){
+        box.forEach(function(e){
+            e.classList.remove('active')
+        })
+        el.classList.add('active')
+    })
+  })
+</script> -->
+
+<!-- <input id="char-input" />
+<p id="char-count">0</p>
+
+<script>
+  const input = document.getElementById('char-input');
+  const count = document.getElementById('char-count');
+
+  input.addEventListener('input', () => {
+    count.textContent = input.value.length;
+  });
+</script> -->
+
+
+<!-- <button id="add-img-btn">Add Image</button>
+<div id="img-container"></div>
+
+<script>
+  // JS goes here
+  const btn=document.querySelector('#add-img-btn')
+  const id=document.querySelector('#img-container')
+  btn.addEventListener('click',function(){
+    const im=document.createElement('img')
+    im.src=`https://via.placeholder.com/100?text`
+    id.appendChild(im)
+  })
+</script> -->
+
+<!-- <div id="removable" style="width:100px;height:100px;background:orange;cursor:pointer;">dblclick</div>
+
+<script>
+  const box = document.getElementById('removable');
+
+  box.addEventListener('dblclick', () => {
+    box.remove()
+    
+  });
+</script> -->
+
+<!-- <input id="cap-input" />
+<button id="cap-btn">Capitalize</button>
+
+<script>
+  const input = document.getElementById('cap-input');
+  const btn = document.getElementById('cap-btn');
+
+  btn.addEventListener('click', () => {
+    input.value = input.value.toUpperCase();
+  });
+</script> -->
+
+<!-- <input id="pass" type="password" />
+<button id="toggle-pass">Show</button>
+
+<script>
+  const passInput = document.getElementById('pass');
+  const toggleBtn = document.getElementById('toggle-pass');
+
+  toggleBtn.addEventListener('click', () => {
+    if (passInput.type === 'password') {
+      passInput.type = 'text';
+      toggleBtn.textContent = 'Hide';
+    } else {
+      passInput.type = 'password';
+      toggleBtn.textContent = 'Show';
+    }
+  });
+</script> -->
+
+<!-- <button id="num-btn">Add Number</button>
+<ul id="num-list"></ul>
+
+<script>
+  const btn = document.getElementById('num-btn');
+  const ul = document.getElementById('num-list');
+  let n = 0;
+
+  btn.addEventListener('click', () => {
+    n++;
+    const li = document.createElement('li');
+    li.textContent = n;
+    ul.appendChild(li);
+  });
+</script> -->
+
+<!-- <footer id="year">----</footer>
+<button id="set-year">Set Year</button>
+
+<script>
+  const footer = document.getElementById('year');
+  const btn = document.getElementById('set-year');
+
+  btn.addEventListener('click', () => {
+    const year = new Date().getFullYear();
+    footer.textContent = year;
+  });
+</script> -->
+
+<!-- <p id="text">Zoom Me</p>
+<button id="zoom-btn">Zoom</button>
+
+<script>
+  const p = document.getElementById('text');
+  const btn = document.getElementById('zoom-btn');
+
+  // ensure we can compute initial size
+  const style = window.getComputedStyle(p);
+  let size = parseFloat(style.fontSize) || 16;
+
+  btn.addEventListener('click', () => {
+    size += 2;
+    p.style.fontSize = size + 'px';
+  });
+</script> -->
+
+
+<div id="source" style="width:80px;height:80px;background:green;cursor:pointer;"></div>
+<div id="clone-container"></div>
+
+<script>
+  const source = document.getElementById('source');
+  const container = document.getElementById('clone-container');
+
+  source.addEventListener('click', () => {
+    const clone = source.cloneNode(true);  // deep: true for children if any
+    // optionally change clone styling or remove id to avoid duplicates
+    clone.id = '';
+    clone.style.margin = '6px';
+    container.appendChild(clone);
+  });
+</script>
