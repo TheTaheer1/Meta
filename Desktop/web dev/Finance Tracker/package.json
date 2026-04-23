@@ -1,7 +1,0 @@
-{
-  "name": "finance-tracker-root",
-  "private": true,
-  "scripts": {
-    "dev": "cd vite-project && npm run dev"
-  }
-}
