@@ -5,17 +5,18 @@ def compute_score(state, task, worker):
     priority = task["priority"]
     bugs = task["bugs"]
     rejections = task["rejection_count"]
-=======
+
     score = 3 * skill
     score += 1.5 * priority
     score -= 2 * fatigue
     score -= 0.5 * bugs
->>>>>>> 26589e5 (Push latest changes)
+    score += 1.5 * rejections
 
     if time_left <= 2:
         score += 3
     elif time_left <= 5:
-=======
+        score += 1.5
+
     return score
 
 
@@ -53,29 +54,12 @@ def manager_act(state):
                 continue
 
             if task["id"] in used_tasks:
->>>>>>> 26589e5 (Push latest changes)
                 continue
 
             score = compute_score(state, task, worker)
 
             if score > best_score:
                 best_score = score
-<<<<<<< HEAD
-                best_action = {
-                    "agent": "manager",
-                    "type": "assign_task" if task["assigned_to"] is None else "reassign_task",
-                    "params": {
-                        "task_id": task["id"],
-                        "worker_id": worker_id,
-                        "new_worker_id": worker_id
-                    }
-                }
-
-    if best_action:
-        print(f"\n[MANAGER] score={best_score:.2f}")
-        return best_action
-    return {"agent": "manager", "type": "do_nothing", "params": {}}
-=======
                 best_task = task
 
         if best_task:
@@ -94,4 +78,3 @@ def manager_act(state):
             print(explain_decision(state, best_task, worker_id, best_score))
 
     return actions
->>>>>>> 26589e5 (Push latest changes)
