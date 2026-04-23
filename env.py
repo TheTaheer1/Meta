@@ -13,6 +13,9 @@ class Environment:
     def __init__(self, config):
         self.config = config
         self.state = None
+        self.rng = random.Random(config.get("seed", 42))
+        self.history = []
+        self.task_map = {}
 
     # =========================
     # RESET
@@ -33,6 +36,7 @@ class Environment:
             },
             "cost": 0.0
         }
+        self.task_map = {t["id"]: t for t in self.state["tasks"]}
         return copy.deepcopy(self.state)
 
     # =========================
@@ -79,8 +83,25 @@ class Environment:
         # 7. Cost
         reward -= self._update_cost()
 
-        # 8. Time
+        # 8. Idle penalty
+        workers = self.state["agents"]["workers"]
+
+        if any(t["status"] != "done" for t in self.state["tasks"]):
+            if all(w["current_task"] is None for w in workers.values()):
+                reward -= 0.1
+
+        # 9. Time
         self.state["time"] += 1
+
+        # 10. Logging
+        self.history.append({
+            "time": self.state["time"],
+            "reward": reward,
+            "completed": self.state["metrics"]["completed_tasks"],
+            "failed": self.state["metrics"]["failed_tasks"],
+            "bugs": self.state["metrics"]["total_bugs"],
+            "satisfaction": self.state["client"]["satisfaction"]
+        })
 
         done = self._check_done()
 
@@ -109,9 +130,11 @@ class Environment:
         else:
             prob = base_prob
 
-        if random.random() < prob:
+        if self.rng.random() < prob:
             new_id = len(self.state["tasks"])
-            self.state["tasks"].append(self._generate_task(new_id))
+            task = self._generate_task(new_id)
+            self.state["tasks"].append(task)
+            self.task_map[new_id] = task
 
             # resolve client request
             self.state["client"]["pending_change"] = False
@@ -122,7 +145,7 @@ class Environment:
     def _random_bug_injection(self):
         for task in self.state["tasks"]:
             if task["status"] == "in_progress":
-                if random.random() < self.config.get("bug_injection_prob", 0.1):
+                if self.rng.random() < self.config.get("bug_injection_prob", 0.1):
                     task["bugs"] += 1
                     self.state["metrics"]["total_bugs"] += 1
 
@@ -149,8 +172,9 @@ class Environment:
     # CLIENT SATISFACTION
     # =========================
     def _update_client_satisfaction(self):
-        reward = 0
         client = self.state["client"]
+
+        prev = client["satisfaction"]
 
         completed = self.state["metrics"]["completed_tasks"]
         failed = self.state["metrics"]["failed_tasks"]
@@ -160,8 +184,8 @@ class Environment:
 
         client["satisfaction"] = max(0, min(1, client["satisfaction"]))
 
-        reward += client["satisfaction"]
-        return reward
+        # return delta (NOT absolute value)
+        return client["satisfaction"] - prev
 
     # =========================
     # PENALIZE IGNORED CLIENT
@@ -203,14 +227,14 @@ class Environment:
     def _generate_task(self, t):
         return {
             "id": t,
-            "type": random.choice(["feature", "bugfix"]),
+            "type": self.rng.choice(["feature", "bugfix"]),
             "status": "todo",
             "assigned_to": None,
             "progress": 0.0,
             "bugs": 0,
-            "deadline": t + random.randint(5, 10),
-            "priority": random.randint(1, 3),
-            "complexity": random.uniform(0.5, 2.0),
+            "deadline": t + self.rng.randint(5, 10),
+            "priority": self.rng.randint(1, 3),
+            "complexity": self.rng.uniform(0.5, 2.0),
             "created_at": t,
             "outcome": None,
             "qa_status": "pending",
@@ -232,11 +256,11 @@ class Environment:
     def _create_worker(self):
         return {
             "current_task": None,
-            "efficiency": random.uniform(0.5, 1.0),
+            "efficiency": self.rng.uniform(0.5, 1.0),
             "is_busy": False,
             "fatigue": 0.0,
             "skills": {
-                "feature": random.uniform(0.3, 1.0),
-                "bugfix": random.uniform(0.3, 1.0)
+                "feature": self.rng.uniform(0.3, 1.0),
+                "bugfix": self.rng.uniform(0.3, 1.0)
             }
         }

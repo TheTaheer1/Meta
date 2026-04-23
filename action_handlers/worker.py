@@ -9,21 +9,17 @@ def handle_worker_action(state, action):
     task_id = action["params"]["task_id"]
 
     worker = state["agents"]["workers"].get(worker_id)
+
+    # ✅ FIX: correct task lookup
     task = next((t for t in state["tasks"] if t["id"] == task_id), None)
 
     if not worker or not task:
         return
 
-    # =========================
-    # SAFETY CHECK
-    # =========================
     if worker["current_task"] != task_id:
         worker["fatigue"] = min(1.0, worker["fatigue"] + 0.02)
         return
 
-    # =========================
-    # CORE VARIABLES
-    # =========================
     skill = worker["skills"][task["type"]]
     fatigue = worker["fatigue"]
     efficiency = worker["efficiency"]
@@ -31,20 +27,11 @@ def handle_worker_action(state, action):
     rejections = task["rejection_count"]
     bugs = task["bugs"]
 
-    # =========================
-    # EFFECTIVE EFFICIENCY
-    # =========================
     effective_efficiency = efficiency * (1 - fatigue)
 
-    # =========================
-    # DEADLINE PRESSURE
-    # =========================
     time_left = task["deadline"] - state["time"]
     urgency_multiplier = 1 + max(0, (3 - time_left)) * 0.1
 
-    # =========================
-    # PROGRESS UPDATE
-    # =========================
     base_progress = (
         effective_efficiency
         * skill
@@ -61,32 +48,25 @@ def handle_worker_action(state, action):
 
     task["progress"] = min(1.0, task["progress"] + progress_gain)
 
-    # =========================
-    # BUG GENERATION
-    # =========================
+    # BUGS
     base_bug = (1 - skill) * 0.6
     fatigue_impact = 0.15 * fatigue
     rejection_impact = 0.05 * rejections
 
-    bug_chance = base_bug + fatigue_impact + rejection_impact
-    bug_chance = min(0.9, max(0.05, bug_chance))
+    bug_chance = min(0.9, max(0.05, base_bug + fatigue_impact + rejection_impact))
 
     if random.random() < bug_chance:
         new_bugs = 1 if random.random() < 0.8 else 2
         task["bugs"] += new_bugs
         state["metrics"]["total_bugs"] += new_bugs
 
-    # =========================
     # SKILL LEARNING
-    # =========================
     worker["skills"][task["type"]] = min(
         1.0,
         worker["skills"][task["type"]] + 0.005 * progress_gain
     )
 
-    # =========================
-    # MOVE TO REVIEW
-    # =========================
+    # DONE → REVIEW
     if task["progress"] >= 1.0:
         task["status"] = "in_review"
         task["qa_status"] = "pending"

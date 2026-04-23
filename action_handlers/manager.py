@@ -5,8 +5,9 @@ def handle_manager_action(state, action):
         return
 
     task_id = action["params"]["task_id"]
-    worker_id = action["params"].get("worker_id") or action["params"].get("new_worker_id")
+    worker_id = action["params"].get("worker_id")
 
+    # ✅ FIX: correct task lookup
     task = next((t for t in state["tasks"] if t["id"] == task_id), None)
     worker = state["agents"]["workers"].get(worker_id)
 
