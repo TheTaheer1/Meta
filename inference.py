@@ -6,9 +6,6 @@ from agents.qa_agent import qa_act
 from agents.client_agent import client_act
 
 
-# =========================
-# CONFIG
-# =========================
 config = {
     "num_tasks": 5,
     "max_steps": 30,
@@ -17,75 +14,67 @@ config = {
     "bug_injection_prob": 0.1
 }
 
-
-# =========================
-# INIT
-# =========================
 env = Environment(config)
 state = env.reset()
 
 
-# =========================
-# RUN LOOP
-# =========================
+def add_action(actions, action):
+    if action and action.get("type") != "do_nothing":
+        actions.append(action)
+
+
 for step in range(config["max_steps"]):
     print(f"\n========== STEP {step} ==========")
 
     actions = []
 
-    # 🔥 Manager (IMPORTANT: returns LIST)
-    manager_actions = manager_act(state)
-    if isinstance(manager_actions, list):
-        actions.extend(manager_actions)
-    else:
-        actions.append(manager_actions)
+    # Manager
+    manager_actions = manager_act(state) or []
+    if not isinstance(manager_actions, list):
+        manager_actions = [manager_actions]
+    actions.extend(manager_actions)
 
-    # 👷 Workers
+    # Workers
     actions.extend(worker_act(state))
 
-    # 🧪 QA
-    actions.append(qa_act(state))
+    # QA + Client (filtered)
+    add_action(actions, qa_act(state))
+    add_action(actions, client_act(state))
 
-    # 👤 Client
-    actions.append(client_act(state))
-
-    # =========================
-    # DEBUG: PRINT ACTIONS
-    # =========================
     print("\n[ACTIONS]")
     for a in actions:
         print(a)
 
-    # =========================
-    # STEP ENV
-    # =========================
+    # Step
     state, reward, done, _ = env.step(actions)
 
-    # =========================
-    # DEBUG: PRINT STATE SUMMARY
-    # =========================
-    print(f"\n[SUMMARY]")
-    print(f"Time: {state['time']}")
-    print(f"Reward: {reward:.2f}")
-    print(f"Client Satisfaction: {state['client']['satisfaction']:.2f}")
+    # Summary
+    print("\n[SUMMARY]")
+    print(f"Time: {state['time']} | Reward: {reward:.2f} | Satisfaction: {state['client']['satisfaction']:.2f}")
 
+    active = sum(1 for t in state["tasks"] if t["status"] == "in_progress")
+    done_t = sum(1 for t in state["tasks"] if t["status"] == "done")
+    failed = sum(1 for t in state["tasks"] if t["status"] == "failed")
+
+    print(f"Active: {active} | Done: {done_t} | Failed: {failed}")
+
+    # Tasks
     print("\n[Tasks]")
     for t in state["tasks"]:
         print(
             f"Task {t['id']} | {t['status']} | prog={t['progress']:.2f} | bugs={t['bugs']} | assigned={t['assigned_to']}"
         )
 
-    # =========================
-    # END
-    # =========================
+    # Early stop
+    if all(t["status"] in ["done", "failed"] for t in state["tasks"]):
+        print("\n=== ALL TASKS COMPLETED ===")
+        break
+
     if done:
         print("\n=== SIMULATION COMPLETE ===")
         break
 
 
-# =========================
-# OPTIONAL: PRINT HISTORY
-# =========================
 print("\n=== HISTORY (last 5 steps) ===")
 for h in env.history[-5:]:
     print(h)

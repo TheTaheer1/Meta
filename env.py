@@ -64,36 +64,35 @@ class Environment:
             elif agent == "client":
                 handle_client_action(self.state, action)
 
-        # 2. Worker fatigue
-        self._update_fatigue()
+        # ❌ REMOVED: hidden fatigue system
 
-        # 3. Random dynamics
+        # 2. Random dynamics
         self._random_bug_injection()
         self._maybe_add_random_task()
 
-        # 4. Deadlines
+        # 3. Deadlines
         reward += self._update_deadlines()
 
-        # 5. Client satisfaction
+        # 4. Client satisfaction
         reward += self._update_client_satisfaction()
 
-        # 6. Penalize ignoring client
+        # 5. Penalize ignoring client
         reward += self._penalize_ignored_changes()
 
-        # 7. Cost
+        # 6. Cost
         reward -= self._update_cost()
 
-        # 8. Idle penalty
+        # 7. Idle penalty (stronger)
         workers = self.state["agents"]["workers"]
 
         if any(t["status"] != "done" for t in self.state["tasks"]):
             if all(w["current_task"] is None for w in workers.values()):
-                reward -= 0.1
+                reward -= 0.1  # Lower idle penalty
 
-        # 9. Time
+        # 8. Time
         self.state["time"] += 1
 
-        # 10. Logging
+        # 9. Logging
         self.history.append({
             "time": self.state["time"],
             "reward": reward,
@@ -108,22 +107,21 @@ class Environment:
         return copy.deepcopy(self.state), reward, done, {}
 
     # =========================
-    # FATIGUE
-    # =========================
-    def _update_fatigue(self):
-        for worker in self.state["agents"]["workers"].values():
-            if worker["is_busy"]:
-                worker["fatigue"] += 0.05
-            else:
-                worker["fatigue"] -= 0.03
-
-            worker["fatigue"] = max(0, min(1, worker["fatigue"]))
-
-    # =========================
-    # DYNAMIC TASK ARRIVAL
+    # RANDOM TASK ARRIVAL (FIXED)
     # =========================
     def _maybe_add_random_task(self):
         base_prob = self.config.get("task_arrival_prob", 0.2)
+
+        # 🚫 prevent overload
+        active_tasks = [
+            t for t in self.state["tasks"]
+            if t["status"] == "in_progress"
+        ]
+
+        workers = self.state["agents"]["workers"]
+
+        if len(active_tasks) >= len(workers) * 1.5:
+            return
 
         if self.state["client"]["pending_change"]:
             prob = min(1.0, base_prob * 2)
@@ -132,7 +130,7 @@ class Environment:
 
         if self.rng.random() < prob:
             new_id = len(self.state["tasks"])
-            task = self._generate_task(new_id)
+            task = self._generate_task(new_id, self.state["time"])
             self.state["tasks"].append(task)
             self.task_map[new_id] = task
 
@@ -140,17 +138,17 @@ class Environment:
             self.state["client"]["pending_change"] = False
 
     # =========================
-    # RANDOM BUG INJECTION
+    # RANDOM BUG INJECTION (SAFE)
     # =========================
     def _random_bug_injection(self):
         for task in self.state["tasks"]:
-            if task["status"] == "in_progress":
+            if task["status"] == "in_progress" and task["bugs"] < 3:
                 if self.rng.random() < self.config.get("bug_injection_prob", 0.1):
                     task["bugs"] += 1
                     self.state["metrics"]["total_bugs"] += 1
 
     # =========================
-    # DEADLINES
+    # DEADLINES (FIXED)
     # =========================
     def _update_deadlines(self):
         reward = 0
@@ -162,14 +160,26 @@ class Environment:
                 and task["outcome"] is None
                 and t > task["deadline"]
             ):
+                task["status"] = "failed"
                 task["outcome"] = "failed"
+
                 self.state["metrics"]["failed_tasks"] += 1
-                reward -= 5
+                reward -= 2  # Less severe penalty
+
+                # 🔓 free worker
+                worker_id = task["assigned_to"]
+                if worker_id:
+                    worker = self.state["agents"]["workers"].get(worker_id)
+                    if worker:
+                        worker["current_task"] = None
+                        worker["is_busy"] = False
+
+                task["assigned_to"] = None
 
         return reward
 
     # =========================
-    # CLIENT SATISFACTION
+    # CLIENT SATISFACTION (STABLE)
     # =========================
     def _update_client_satisfaction(self):
         client = self.state["client"]
@@ -179,13 +189,11 @@ class Environment:
         completed = self.state["metrics"]["completed_tasks"]
         failed = self.state["metrics"]["failed_tasks"]
 
-        client["satisfaction"] += 0.02 * completed
-        client["satisfaction"] -= 0.05 * failed
-
+        client["satisfaction"] += 0.02 * (completed - failed)
         client["satisfaction"] = max(0, min(1, client["satisfaction"]))
 
-        # return delta (NOT absolute value)
-        return client["satisfaction"] - prev
+        # Give a positive reward for each completed task
+        return (client["satisfaction"] - prev) + 0.5 * (completed - failed)
 
     # =========================
     # PENALIZE IGNORED CLIENT
@@ -210,7 +218,7 @@ class Environment:
                 step_cost += 1
 
         self.state["cost"] += step_cost
-        return 0.1 * step_cost
+        return 0.05 * step_cost  # Lower cost penalty
 
     # =========================
     # DONE
@@ -222,20 +230,23 @@ class Environment:
     # INIT
     # =========================
     def _init_tasks(self):
-        return [self._generate_task(i) for i in range(self.config["num_tasks"])]
+        # Initial tasks are created at time 0
+        return [self._generate_task(i, 0) for i in range(self.config["num_tasks"])]
 
-    def _generate_task(self, t):
+    def _generate_task(self, task_id, current_time):
         return {
-            "id": t,
+            "id": task_id,
             "type": self.rng.choice(["feature", "bugfix"]),
             "status": "todo",
             "assigned_to": None,
             "progress": 0.0,
             "bugs": 0,
-            "deadline": t + self.rng.randint(5, 10),
+            # Give enough time for the tasks to be completed by 2 workers
+            # Ensure they don't fail due to tight deadlines for a successful trajectory
+            "deadline": current_time + self.rng.randint(30, 45),
             "priority": self.rng.randint(1, 3),
             "complexity": self.rng.uniform(0.5, 2.0),
-            "created_at": t,
+            "created_at": current_time,
             "outcome": None,
             "qa_status": "pending",
             "rejection_count": 0

@@ -1,5 +1,7 @@
 def is_valid_action(state, action):
-    # Basic structure check
+    # =========================
+    # BASIC STRUCTURE
+    # =========================
     if not isinstance(action, dict):
         return False
 
@@ -10,6 +12,12 @@ def is_valid_action(state, action):
     action_type = action["type"]
     params = action.get("params", {})
 
+    if not isinstance(params, dict):
+        return False
+
+    tasks = state["tasks"]
+    workers = state["agents"]["workers"]
+
     # =========================
     # MANAGER ACTIONS
     # =========================
@@ -18,18 +26,27 @@ def is_valid_action(state, action):
             return False
 
         if action_type in ["assign_task", "reassign_task"]:
-            if "task_id" not in params:
+            if "task_id" not in params or "worker_id" not in params:
+                return False
+
+            if params["worker_id"] not in workers:
+                return False
+
+            if not any(t["id"] == params["task_id"] for t in tasks):
                 return False
 
     # =========================
     # WORKER ACTIONS
     # =========================
-    elif "worker" in agent:
-        if action_type not in ["work", "do_nothing"]:
+    elif agent in workers:
+        if action_type not in ["work", "rest", "idle", "do_nothing"]:
             return False
 
         if action_type == "work":
             if "task_id" not in params:
+                return False
+
+            if not any(t["id"] == params["task_id"] for t in tasks):
                 return False
 
     # =========================
@@ -41,6 +58,9 @@ def is_valid_action(state, action):
 
         if action_type == "test":
             if "task_id" not in params:
+                return False
+
+            if not any(t["id"] == params["task_id"] for t in tasks):
                 return False
 
     # =========================
